@@ -1,19 +1,23 @@
 // services/tasksService.js
-import { db } from '../firebase';
+import { auth, db } from '../firebase';
 import { ref, push, update, remove, onValue } from 'firebase/database';
 
-const TASKS_REF = 'tasks/';
+const getUserTasksRef = () => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Usuário não autenticado");
+  return ref(db, `tarefas/${uid}`);
+};
 
 // Criar uma nova tarefa
 export const createTask = async (taskText) => {
-  await push(ref(db, TASKS_REF), {
+  await push(getUserTasksRef(), {
     text: taskText,
   });
 };
 
 // Ler tarefas em tempo real
 export const listenToTasks = (callback) => {
-  const tasksRef = ref(db, TASKS_REF);
+  const tasksRef = getUserTasksRef();
   return onValue(tasksRef, (snapshot) => {
     const data = snapshot.val();
     const taskList = data
@@ -25,12 +29,12 @@ export const listenToTasks = (callback) => {
 
 // Atualizar uma tarefa existente
 export const updateTask = async (taskId, newText) => {
-  await update(ref(db, `${TASKS_REF}${taskId}`), {
+  await update(ref(db, `${getUserTasksRef().key}/${taskId}`), {
     text: newText,
   });
 };
 
 // Excluir uma tarefa
 export const deleteTask = async (taskId) => {
-  await remove(ref(db, `${TASKS_REF}${taskId}`));
+  await remove(ref(db, `${getUserTasksRef().key}/${taskId}`));
 };
